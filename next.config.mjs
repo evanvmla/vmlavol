@@ -1,10 +1,21 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
+  experimental: {
+    serverComponentsExternalPackages: [
+      'puppeteer-extra',
+      'puppeteer-extra-plugin-stealth',
+      'puppeteer-extra-plugin',
+    ],
+    outputFileTracingIncludes: {
+      '/api/cron/instil-sync': [
+        './node_modules/puppeteer-extra/**/*',
+        './node_modules/puppeteer-extra-plugin/**/*',
+        './node_modules/puppeteer-extra-plugin-stealth/**/*',
+        './node_modules/merge-deep/**/*',
+        './node_modules/clone-deep/**/*',
+        './node_modules/deepmerge/**/*',
+      ],
+    },
   },
   async headers() {
     return [

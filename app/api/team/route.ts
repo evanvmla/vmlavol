@@ -4,7 +4,7 @@ import { handleError } from '@/lib/api-helpers';
 import { getResend, getFromEmail } from '@/lib/resend';
 import { renderInviteEmail } from '@/lib/emails/invite-template';
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+const APP_URL = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').trim();
 
 export async function GET() {
   try {
@@ -47,21 +47,20 @@ export async function POST(request: Request) {
       console.warn('[team.invite] NEXT_PUBLIC_APP_URL is unset or contains localhost in production');
     }
 
-    const redirectTo = `${APP_URL}/auth/callback?next=/set-password`;
-
     const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
       type: 'invite',
       email,
-      options: { redirectTo },
+      options: { data: { password_set: false } },
     });
 
     if (linkError) throw linkError;
 
-    const actionLink = linkData.properties.action_link;
-    const html = renderInviteEmail(actionLink);
+    const hashedToken = linkData.properties.hashed_token;
+    const inviteLink = `${APP_URL}/auth/callback?token_hash=${encodeURIComponent(hashedToken)}&type=invite&next=/set-password`;
+    const html = renderInviteEmail(inviteLink);
 
     const { error: sendError } = await getResend().emails.send({
-      from: getFromEmail(),
+      from: `VMLA <${getFromEmail().match(/<(.+)>/)?.[1] || getFromEmail()}>`,
       to: email,
       subject: "You're invited to VMLA",
       html,

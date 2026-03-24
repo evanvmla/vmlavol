@@ -32,8 +32,8 @@ type SortDir = 'asc' | 'desc';
 function formatCellValue(value: unknown, fieldType: CustomField['field_type']): string {
   if (value === null || value === undefined || value === '') return '-';
   if (fieldType === 'checkbox') return value ? 'Yes' : 'No';
-  if (fieldType === 'multiselect' && (Array.isArray(value) || typeof value === 'string')) {
-    const items = Array.isArray(value) ? value as string[] : (value as string).split(',').map(s => s.trim());
+  if (fieldType === 'multiselect' && Array.isArray(value)) {
+    const items = value as string[];
     if (items.length <= 2) return items.join(', ');
     return `${items.slice(0, 2).join(', ')} +${items.length - 2} more`;
   }
@@ -428,17 +428,9 @@ export default function VolunteersPage() {
                         {vol.first_name} {vol.last_name}
                       </Link>
                       {vol.email && (
-                        <button
-                          onClick={() => {
-                            sessionStorage.setItem('emailGroupVolunteers', JSON.stringify([
-                              { id: vol.id, first_name: vol.first_name, last_name: vol.last_name, email: vol.email },
-                            ]));
-                            router.push('/email?from_group=1');
-                          }}
-                          title={vol.email}
-                        >
+                        <Link href={`/email?volunteer_id=${vol.id}`} title={vol.email}>
                           <Mail className="w-4 h-4 text-gray-400 hover:text-blue-600" />
-                        </button>
+                        </Link>
                       )}
                       {vol.phone && (
                         <a href={`tel:${vol.phone}`} title={vol.phone}>

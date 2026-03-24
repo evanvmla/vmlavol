@@ -35,40 +35,64 @@ export async function POST(request: NextRequest) {
       .from('custom_fields')
       .select('*');
 
-    let volQuery = supabase
-      .from('volunteers')
-      .select('id')
-      .eq('status', 'active');
+    // Two paths: specific volunteer IDs or filter-based resolution
+    //   volunteer_ids[] → query by .in('id', ids).eq('status', 'active')
+    //   filter_criteria  → applyFilterRules() (existing bulk flow)
+    let volunteers: { id: string }[] | null = null;
+    let volError: unknown = null;
 
-    const filters = body.filter_criteria || {};
+    const volunteerIds: string[] | undefined = body.volunteer_ids;
 
-    // New rules-based filtering
-    const rules: FilterRule[] = filters.rules || [];
-    volQuery = applyFilterRules(volQuery, rules, (customFields as CustomField[]) || []);
+    if (Array.isArray(volunteerIds) && volunteerIds.length > 0) {
+      const result = await supabase
+        .from('volunteers')
+        .select('id')
+        .eq('status', 'active')
+        .not('email', 'is', null)
+        .in('id', volunteerIds);
+      volunteers = result.data;
+      volError = result.error;
+    } else {
+      let volQuery = supabase
+        .from('volunteers')
+        .select('id')
+        .eq('status', 'active')
+        .not('email', 'is', null);
 
-    // Backward-compat: legacy tag / source_form_id keys
-    if (filters.tag) {
-      volQuery = volQuery.contains('tags', [filters.tag]);
+      const filters = body.filter_criteria || {};
+
+      // Rules-based filtering
+      const rules: FilterRule[] = filters.rules || [];
+      volQuery = applyFilterRules(volQuery, rules, (customFields as CustomField[]) || []);
+
+      // Backward-compat: legacy tag / source_form_id keys
+      if (filters.tag) {
+        volQuery = volQuery.contains('tags', [filters.tag]);
+      }
+      if (filters.source_form_id) {
+        volQuery = volQuery.eq('source_form_id', filters.source_form_id);
+      }
+
+      const result = await volQuery;
+      volunteers = result.data;
+      volError = result.error;
     }
-    if (filters.source_form_id) {
-      volQuery = volQuery.eq('source_form_id', filters.source_form_id);
-    }
 
-    const { data: volunteers, error: volError } = await volQuery;
     if (volError) throw volError;
 
     if (!volunteers || volunteers.length === 0) {
       return NextResponse.json({ error: 'No matching recipients' }, { status: 400 });
     }
 
-    // from_address/cc/bcc are stored in filter_criteria JSONB to avoid a schema migration.
-    // This is intentional — they are send-level metadata alongside the filter rules.
+    // from_address/cc/bcc/volunteer_ids are stored in filter_criteria JSONB for audit trail.
     const { from_address, cc, bcc } = body;
+    const filters = body.filter_criteria || {};
     const enrichedCriteria = {
       ...filters,
       ...(from_address ? { from_address } : {}),
       ...(Array.isArray(cc) && cc.length ? { cc } : {}),
       ...(Array.isArray(bcc) && bcc.length ? { bcc } : {}),
+      ...(Array.isArray(volunteerIds) && volunteerIds.length ? { volunteer_ids: volunteerIds } : {}),
     };
 
     // Create email send record
@@ -92,6 +116,7 @@ export async function POST(request: NextRequest) {
       email_send_id: emailSend.id,
       volunteer_id: vol.id,
       status: 'pending',
+      retry_count: 0,
     }));
 
     for (let i = 0; i < recipientRows.length; i += 500) {
@@ -100,6 +125,24 @@ export async function POST(request: NextRequest) {
         .from('email_recipients')
         .insert(batch);
       if (insertError) throw insertError;
+    }
+
+    // Auto-log interactions for email send
+    try {
+      const interactionRows = volunteers.map(vol => ({
+        volunteer_id: vol.id,
+        type: 'email',
+        description: body.subject,
+        metadata: { email_send_id: emailSend.id },
+        created_by: 'system',
+      }));
+      for (let i = 0; i < interactionRows.length; i += 500) {
+        const batch = interactionRows.slice(i, i + 500);
+        await supabase.from('interactions').insert(batch);
+      }
+    } catch (interactionErr) {
+      console.error('[email-send/interactions]', interactionErr);
+      // Non-fatal: email still sends even if interaction logging fails
     }
 
     return NextResponse.json(

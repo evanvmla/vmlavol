@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createSupabaseBrowser } from '@/lib/supabase-browser';
 import { Button } from '@/components/ui/Button';
@@ -11,43 +11,7 @@ export default function SetPasswordPage() {
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [ready, setReady] = useState(false);
-  const [checked, setChecked] = useState(false);
   const router = useRouter();
-
-  useEffect(() => {
-    const supabase = createSupabaseBrowser();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN') {
-        setReady(true);
-      }
-    });
-
-    // Fallback: check if session already exists (e.g. hash already processed)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setReady(true);
-      } else {
-        setChecked(true);
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  useEffect(() => {
-    // If getSession returned null and onAuthStateChange hasn't fired SIGNED_IN,
-    // wait a beat then redirect to login
-    if (checked && !ready) {
-      const timeout = setTimeout(() => {
-        if (!ready) router.replace('/login');
-      }, 2000);
-      return () => clearTimeout(timeout);
-    }
-  }, [checked, ready, router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -66,7 +30,10 @@ export default function SetPasswordPage() {
     setLoading(true);
 
     const supabase = createSupabaseBrowser();
-    const { error } = await supabase.auth.updateUser({ password });
+    const { error } = await supabase.auth.updateUser({
+      password,
+      data: { password_set: true },
+    });
 
     if (error) {
       setError(error.message);
@@ -76,14 +43,6 @@ export default function SetPasswordPage() {
 
     router.push('/');
     router.refresh();
-  }
-
-  if (!ready) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-sm text-gray-500">Verifying invite...</p>
-      </div>
-    );
   }
 
   return (

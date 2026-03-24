@@ -13,10 +13,6 @@ CREATE TABLE custom_fields (
   created_at    TIMESTAMPTZ DEFAULT now()
 );
 
-ALTER TABLE public.custom_fields ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Team members have full access" ON public.custom_fields
-  FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
-
 -- FORMS
 CREATE TABLE forms (
   id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -31,10 +27,6 @@ CREATE TABLE forms (
   created_at              TIMESTAMPTZ DEFAULT now(),
   updated_at              TIMESTAMPTZ DEFAULT now()
 );
-
-ALTER TABLE public.forms ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Team members have full access" ON public.forms
-  FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 
 -- VOLUNTEERS
 CREATE TABLE volunteers (
@@ -57,10 +49,6 @@ CREATE INDEX idx_volunteers_custom_data ON volunteers USING GIN (custom_data);
 CREATE INDEX idx_volunteers_name ON volunteers (lower(first_name), lower(last_name));
 CREATE INDEX idx_volunteers_email ON volunteers (lower(email));
 
-ALTER TABLE public.volunteers ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Team members have full access" ON public.volunteers
-  FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
-
 -- EVENTS
 CREATE TABLE events (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -76,10 +64,6 @@ CREATE TABLE events (
   updated_at    TIMESTAMPTZ DEFAULT now()
 );
 
-ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Team members have full access" ON public.events
-  FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
-
 -- EVENT VOLUNTEERS
 CREATE TABLE event_volunteers (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -90,10 +74,6 @@ CREATE TABLE event_volunteers (
   created_at    TIMESTAMPTZ DEFAULT now(),
   UNIQUE(event_id, volunteer_id)
 );
-
-ALTER TABLE public.event_volunteers ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Team members have full access" ON public.event_volunteers
-  FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 
 -- EMAIL SENDS
 CREATE TABLE email_sends (
@@ -106,10 +86,6 @@ CREATE TABLE email_sends (
   sent_at           TIMESTAMPTZ,
   created_at        TIMESTAMPTZ DEFAULT now()
 );
-
-ALTER TABLE public.email_sends ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Team members have full access" ON public.email_sends
-  FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 
 -- EMAIL RECIPIENTS
 CREATE TABLE email_recipients (
@@ -127,10 +103,6 @@ CREATE TABLE email_recipients (
 );
 
 CREATE INDEX idx_email_recipients_pending ON email_recipients (status, email_send_id) WHERE status = 'pending';
-
-ALTER TABLE public.email_recipients ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Team members have full access" ON public.email_recipients
-  FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 
 -- Atomic row-claiming RPC for email processing (prevents double-send race conditions)
 -- Also reclaims rows stuck in 'processing' for >5 min (crashed worker recovery)
@@ -164,10 +136,6 @@ CREATE TABLE interactions (
 );
 CREATE INDEX idx_interactions_volunteer ON interactions (volunteer_id, created_at DESC);
 
-ALTER TABLE public.interactions ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Team members have full access" ON public.interactions
-  FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
-
 -- INSTIL SYNC QUEUE
 CREATE TABLE instil_sync_queue (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -181,10 +149,6 @@ CREATE TABLE instil_sync_queue (
 
 CREATE INDEX idx_instil_sync_pending ON instil_sync_queue (status, created_at)
   WHERE status = 'pending';
-
-ALTER TABLE public.instil_sync_queue ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Team members have full access" ON public.instil_sync_queue
-  FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 
 -- pg_cron setup (uncomment and run after deploying to Vercel)
 -- CREATE EXTENSION IF NOT EXISTS pg_cron;

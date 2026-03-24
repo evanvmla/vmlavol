@@ -5,9 +5,11 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const code = searchParams.get('code');
+  const tokenHash = searchParams.get('token_hash');
+  const type = searchParams.get('type') as 'invite' | 'email' | undefined;
   const next = searchParams.get('next') || '/';
 
-  if (!code) {
+  if (!code && !tokenHash) {
     return NextResponse.redirect(new URL('/login', origin));
   }
 
@@ -29,7 +31,15 @@ export async function GET(request: NextRequest) {
     }
   );
 
-  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  let error: Error | null = null;
+
+  if (tokenHash && type) {
+    const result = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
+    error = result.error;
+  } else if (code) {
+    const result = await supabase.auth.exchangeCodeForSession(code);
+    error = result.error;
+  }
 
   if (error) {
     console.error('[auth.callback]', error.message);

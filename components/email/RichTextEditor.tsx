@@ -6,11 +6,7 @@ import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import Underline from '@tiptap/extension-underline';
 import Placeholder from '@tiptap/extension-placeholder';
-
-// --- Pure helper (exported for testing) ---
-export function normalizeEditorOutput(html: string, isEmpty: boolean): string {
-  return isEmpty ? '' : html;
-}
+import { normalizeEditorOutput } from '@/lib/normalize-editor-output';
 
 // --- Error boundary ---
 class EditorErrorBoundary extends React.Component<

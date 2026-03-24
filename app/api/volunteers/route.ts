@@ -22,12 +22,9 @@ export async function GET(request: NextRequest) {
       .select('*', { count: 'exact' });
 
     if (search) {
-      const terms = search.split(/\s+/).filter(Boolean);
-      for (const term of terms) {
-        query = query.or(
-          `first_name.ilike.%${term}%,last_name.ilike.%${term}%`
-        );
-      }
+      query = query.or(
+        `first_name.ilike.%${search}%,last_name.ilike.%${search}%,email.ilike.%${search}%`
+      );
     }
     if (status) query = query.eq('status', status);
     if (tag) query = query.contains('tags', [tag]);
