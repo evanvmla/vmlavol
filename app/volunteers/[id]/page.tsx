@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/Badge';
 import { ArrowLeft, Save, Trash2 } from 'lucide-react';
 import { InteractionTimeline } from '@/components/volunteers/InteractionTimeline';
 import type { Volunteer, CustomField } from '@/lib/types';
+import { parseMultiselect } from '@/lib/parse-multiselect';
 
 export default function VolunteerDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -236,6 +237,33 @@ export default function VolunteerDetailPage() {
                         ...((field.options || []) as string[]).map((o) => ({ value: o, label: o })),
                       ]}
                     />
+                  );
+                }
+                if (field.field_type === 'multiselect') {
+                  const raw = (volunteer.custom_data || {})[field.key];
+                  const selected = parseMultiselect(raw);
+                  return (
+                    <div key={field.id}>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{field.name}</label>
+                      <div className="space-y-1.5">
+                        {((field.options || []) as string[]).map((opt) => (
+                          <label key={opt} className="flex items-center gap-2 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={selected.includes(opt)}
+                              onChange={(e) => {
+                                const next = e.target.checked
+                                  ? [...selected, opt]
+                                  : selected.filter((v) => v !== opt);
+                                updateCustomData(field.key, next);
+                              }}
+                              className="rounded border-gray-300"
+                            />
+                            {opt}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
                   );
                 }
                 if (field.field_type === 'textarea') {
