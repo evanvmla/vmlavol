@@ -6,15 +6,12 @@ export default function EmbedLayout({ children }: { children: React.ReactNode })
       {children}
       <script
         dangerouslySetInnerHTML={{
-          __html: `
-            var defined_script_domain = "track.whatconverts.com";
-            (function() {
-              var s = document.createElement('script');
-              s.src = "https://track.whatconverts.com/scripts/164049.js";
-              s.async = true;
-              document.head.appendChild(s);
-            })();
-          `,
+          __html: `var $wc_load=function(a){return JSON.parse(JSON.stringify(a))},$wc_leads=$wc_leads||{doc:{url:$wc_load(document.URL),ref:$wc_load(document.referrer),search:$wc_load(location.search),hash:$wc_load(location.hash)}};`,
+        }}
+      />
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `(function(){var s=document.createElement('script');s.src="//s.ksrndkehqnwntyxlhgto.com/164049.js";document.head.appendChild(s);})();`,
         }}
       />
     </div>
