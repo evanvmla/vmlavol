@@ -211,7 +211,7 @@ export default function VolunteersPage() {
     }
   }
 
-  const activeFilterCount = (statusFilter ? 1 : 0) + rules.filter(r => r.value || ['is_empty', 'is_not_empty'].includes(r.operator) || r.field === 'phone').length;
+  const activeFilterCount = (quickFilter ? 1 : 0) + rules.filter(r => r.value || ['is_empty', 'is_not_empty'].includes(r.operator) || r.field === 'phone').length;
 
   async function handleExport() {
     const params = buildParams({ page: '1', limit: '10000' });
