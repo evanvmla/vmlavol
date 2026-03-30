@@ -20,12 +20,7 @@ const statusColors: Record<string, 'green' | 'gray' | 'red'> = {
   do_not_contact: 'red',
 };
 
-const STATUS_OPTIONS = [
-  { value: '', label: 'Any status' },
-  { value: 'active', label: 'Active' },
-  { value: 'inactive', label: 'Inactive' },
-  { value: 'do_not_contact', label: 'Do not contact' },
-];
+type QuickFilter = 'volunteers' | 'nc' | null;
 
 type SortDir = 'asc' | 'desc';
 
@@ -73,7 +68,7 @@ export default function VolunteersPage() {
   const [page, setPage] = useState(1);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [showFilters, setShowFilters] = useState(false);
-  const [statusFilter, setStatusFilter] = useState('');
+  const [quickFilter, setQuickFilter] = useState<QuickFilter>(null);
   const [rules, setRules] = useState<FilterRule[]>([]);
   const [sortCol, setSortCol] = useState('first_name');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
@@ -102,10 +97,15 @@ export default function VolunteersPage() {
       ...overrides,
     });
     if (search) params.set('search', search);
-    if (statusFilter) params.set('status', statusFilter);
-    if (rules.length > 0) params.set('rules', JSON.stringify(rules));
+    const allRules = [...rules];
+    if (quickFilter === 'volunteers') {
+      allRules.push({ id: '_qf', field: 'tags', operator: 'not_contains', value: 'NC' });
+    } else if (quickFilter === 'nc') {
+      allRules.push({ id: '_qf', field: 'tags', operator: 'contains', value: 'NC' });
+    }
+    if (allRules.length > 0) params.set('rules', JSON.stringify(allRules));
     return params;
-  }, [page, limit, search, statusFilter, rules, sortCol, sortDir]);
+  }, [page, limit, search, quickFilter, rules, sortCol, sortDir]);
 
   const fetchVolunteers = useCallback(async () => {
     setLoading(true);
@@ -307,17 +307,23 @@ export default function VolunteersPage() {
 
         {showFilters && (
           <div className="p-4 bg-white rounded-lg border border-gray-200 space-y-4 max-w-[50%]">
-            <div className="max-w-xs">
-              <label className="block text-xs font-medium text-gray-500 mb-1">Status</label>
-              <select
-                value={statusFilter}
-                onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-                className="w-full rounded-md border border-gray-300 text-sm px-2 py-1.5 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-              >
-                {STATUS_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Quick filter</label>
+              <div className="flex gap-2">
+                {([['volunteers', 'Volunteers'], ['nc', 'Neighborhood Councils']] as const).map(([key, label]) => (
+                  <button
+                    key={key}
+                    onClick={() => { setQuickFilter(quickFilter === key ? null : key); setPage(1); }}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                      quickFilter === key
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {label}
+                  </button>
                 ))}
-              </select>
+              </div>
             </div>
 
             <div className="border-t pt-3">
