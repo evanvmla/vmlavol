@@ -133,7 +133,7 @@ export default function VolunteersPage() {
   }
 
   function clearFilters() {
-    setStatusFilter('');
+    setQuickFilter(null);
     setRules([]);
     setPage(1);
   }
