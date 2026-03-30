@@ -467,7 +467,7 @@ export default function VolunteersPage() {
             <div className="flex items-center gap-4">
               {totalPages > 1 && (
                 <>
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-1">
                     <Button
                       variant="secondary"
                       size="sm"
@@ -476,6 +476,35 @@ export default function VolunteersPage() {
                     >
                       Previous
                     </Button>
+                    {(() => {
+                      const pages: (number | '...')[] = [];
+                      if (totalPages <= 7) {
+                        for (let i = 1; i <= totalPages; i++) pages.push(i);
+                      } else {
+                        pages.push(1);
+                        if (page > 3) pages.push('...');
+                        for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) pages.push(i);
+                        if (page < totalPages - 2) pages.push('...');
+                        pages.push(totalPages);
+                      }
+                      return pages.map((p, idx) =>
+                        p === '...' ? (
+                          <span key={`ellipsis-${idx}`} className="px-1 text-sm text-gray-400">...</span>
+                        ) : (
+                          <button
+                            key={p}
+                            onClick={() => setPage(p)}
+                            className={`min-w-[32px] h-8 rounded-md text-sm font-medium ${
+                              p === page
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                            }`}
+                          >
+                            {p}
+                          </button>
+                        )
+                      );
+                    })()}
                     <Button
                       variant="secondary"
                       size="sm"
@@ -485,9 +514,23 @@ export default function VolunteersPage() {
                       Next
                     </Button>
                   </div>
-                  <p className="text-sm text-gray-500">
-                    Page {page} of {totalPages}
-                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <label className="text-sm text-gray-500">Go to</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={totalPages}
+                      defaultValue={page}
+                      key={page}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          const val = Math.max(1, Math.min(totalPages, Number((e.target as HTMLInputElement).value)));
+                          if (!isNaN(val)) setPage(val);
+                        }
+                      }}
+                      className="w-14 rounded-md border border-gray-300 text-sm px-2 py-1 text-center focus:border-blue-500 focus:ring-1 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                  </div>
                 </>
               )}
             </div>
