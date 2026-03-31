@@ -170,6 +170,7 @@ function newRule(): FilterRule {
     field: 'tags',
     operator: 'contains',
     value: '',
+    logic: 'AND',
   };
 }
 
@@ -220,9 +221,23 @@ export function RecipientFilter({
 
         return (
           <div key={rule.id} className="flex items-center gap-1.5">
-            <span className="text-xs font-mono text-gray-400 w-12 shrink-0 text-right select-none">
-              {index === 0 ? 'WHERE' : 'AND'}
-            </span>
+            {index === 0 ? (
+              <span className="text-xs font-mono text-gray-400 w-12 shrink-0 text-right select-none">
+                WHERE
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => updateRule(rule.id, { logic: rule.logic === 'OR' ? 'AND' : 'OR' })}
+                className={`text-xs font-mono font-semibold w-12 shrink-0 text-right select-none rounded px-1.5 py-0.5 transition-colors ${
+                  rule.logic === 'OR'
+                    ? 'text-purple-600 bg-purple-50 hover:bg-purple-100'
+                    : 'text-gray-400 bg-gray-50 hover:bg-gray-100'
+                }`}
+              >
+                {rule.logic === 'OR' ? 'OR' : 'AND'}
+              </button>
+            )}
 
             {/* Field */}
             <select
