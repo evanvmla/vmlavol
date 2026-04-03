@@ -64,11 +64,14 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const missing = validateRequired(body, ['email', 'first_name', 'last_name']);
+    const missing = validateRequired(body, ['first_name', 'last_name']);
     if (missing) {
       return NextResponse.json({ error: missing }, { status: 400 });
     }
-    if (!isValidEmail(body.email)) {
+    if (!body.email?.trim() && !body.phone?.trim()) {
+      return NextResponse.json({ error: 'Email or phone is required' }, { status: 400 });
+    }
+    if (body.email?.trim() && !isValidEmail(body.email)) {
       return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
     }
 
@@ -76,7 +79,7 @@ export async function POST(request: NextRequest) {
     const { data, error } = await supabase
       .from('volunteers')
       .insert({
-        email: body.email.toLowerCase().trim(),
+        email: body.email?.toLowerCase().trim() || null,
         first_name: body.first_name.trim(),
         last_name: body.last_name.trim(),
         phone: body.phone || null,

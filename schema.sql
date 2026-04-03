@@ -31,7 +31,7 @@ CREATE TABLE forms (
 -- VOLUNTEERS
 CREATE TABLE volunteers (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email           TEXT UNIQUE NOT NULL,
+  email           TEXT UNIQUE,
   first_name      TEXT NOT NULL,
   last_name       TEXT NOT NULL,
   phone           TEXT,

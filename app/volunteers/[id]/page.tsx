@@ -46,8 +46,15 @@ export default function VolunteerDetailPage() {
     }
   }, [id, isNew]);
 
+  const [formError, setFormError] = useState('');
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
+    if (!volunteer.email?.trim() && !volunteer.phone?.trim()) {
+      setFormError('Email or phone is required');
+      return;
+    }
+    setFormError('');
     setSaving(true);
 
     const method = isNew ? 'POST' : 'PATCH';
@@ -146,15 +153,14 @@ export default function VolunteerDetailPage() {
           label="Email"
           type="email"
           value={volunteer.email || ''}
-          onChange={(e) => setVolunteer({ ...volunteer, email: e.target.value })}
-          required
+          onChange={(e) => { setVolunteer({ ...volunteer, email: e.target.value }); setFormError(''); }}
         />
 
         <div className="grid grid-cols-2 gap-4">
           <Input
             label="Phone"
             value={volunteer.phone || ''}
-            onChange={(e) => setVolunteer({ ...volunteer, phone: e.target.value })}
+            onChange={(e) => { setVolunteer({ ...volunteer, phone: e.target.value }); setFormError(''); }}
           />
           <Input
             label="Zip Code"
@@ -162,6 +168,9 @@ export default function VolunteerDetailPage() {
             onChange={(e) => setVolunteer({ ...volunteer, zip_code: e.target.value })}
           />
         </div>
+        {formError && (
+          <p className="text-sm text-red-600">{formError}</p>
+        )}
 
         <Select
           label="Status"
