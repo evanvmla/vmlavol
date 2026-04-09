@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdmin } from '@/lib/supabase-server';
 import { handleError } from '@/lib/api-helpers';
 import { isValidEmail } from '@/lib/validation';
+import { getResend, getFromEmail } from '@/lib/resend';
+import { renderWelcomeEmail } from '@/lib/emails/welcome';
+
+type WelcomeForm = {
+  welcome_email_subject: string | null;
+  welcome_email_body: string | null;
+};
 
 type MetaLead = {
   id?: string;
@@ -80,7 +87,29 @@ export async function POST(request: NextRequest) {
 
     const supabase = createSupabaseAdmin();
 
+    // Load welcome email template once per batch (optional).
+    // If META_ADS_WELCOME_FORM_SLUG is set, brand-new volunteers get the
+    // welcome email from that form's template. Existing volunteers are
+    // skipped (no double-sending on re-upsert).
+    let welcomeForm: WelcomeForm | null = null;
+    const welcomeFormSlug = process.env.META_ADS_WELCOME_FORM_SLUG;
+    if (welcomeFormSlug) {
+      const { data } = await supabase
+        .from('forms')
+        .select('welcome_email_subject, welcome_email_body')
+        .eq('slug', welcomeFormSlug)
+        .maybeSingle();
+      if (data?.welcome_email_subject && data?.welcome_email_body) {
+        welcomeForm = data as WelcomeForm;
+      } else {
+        console.warn(
+          `[webhooks/meta-ads] META_ADS_WELCOME_FORM_SLUG=${welcomeFormSlug} but form has no welcome_email template; skipping welcome emails`
+        );
+      }
+    }
+
     let success = 0;
+    let welcomeEmailsSent = 0;
     const errors: Array<{ meta_lead_id: string | null; error: string }> = [];
 
     for (const lead of leads) {
@@ -172,6 +201,32 @@ export async function POST(request: NextRequest) {
           console.error('[webhooks/meta-ads/interaction]', interactionErr);
         }
 
+        // Send welcome email ONLY for brand-new volunteers (non-fatal).
+        // Idempotent: if Apps Script retries a batch after a partial failure,
+        // the row will exist on the retry so `existing` will be non-null and
+        // we'll skip the email here.
+        if (!existing && welcomeForm) {
+          try {
+            const resend = getResend();
+            const vars = {
+              first_name: firstName,
+              last_name: lastName,
+              email,
+            };
+            const subject = renderWelcomeEmail(welcomeForm.welcome_email_subject!, vars);
+            const htmlBody = renderWelcomeEmail(welcomeForm.welcome_email_body!, vars);
+            await resend.emails.send({
+              from: getFromEmail(),
+              to: email,
+              subject,
+              html: htmlBody,
+            });
+            welcomeEmailsSent += 1;
+          } catch (emailErr) {
+            console.error('[webhooks/meta-ads/welcome-email]', emailErr);
+          }
+        }
+
         success += 1;
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Unknown error';
@@ -179,7 +234,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ success, errors });
+    return NextResponse.json({ success, welcomeEmailsSent, errors });
   } catch (err) {
     return handleError(err, 'POST /api/webhooks/meta-ads');
   }
