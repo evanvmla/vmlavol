@@ -33,7 +33,7 @@ export async function PATCH(
   try {
     const body = await request.json();
     const supabase = createSupabaseAdmin();
-    const allowed = ['name', 'slug', 'description', 'confirmation_message', 'welcome_email_subject', 'welcome_email_body', 'field_ids', 'is_active'];
+    const allowed = ['name', 'slug', 'description', 'confirmation_message', 'welcome_email_subject', 'welcome_email_body', 'field_ids', 'hidden_fields', 'is_active'];
     const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
     for (const key of allowed) {
       if (key in body) updateData[key] = body[key];
