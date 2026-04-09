@@ -24,12 +24,17 @@ const LANGUAGE_MAP: Record<string, string> = {
   spanish: 'Spanish',
 };
 
+// Values must match the `how-would-you-like-to-help` custom field options
+// exactly (case-sensitive) or they will show up as orphan values in the
+// multiselect UI. Keys are the raw Meta Ads form answers (lower-cased).
 const HELP_MAP: Record<string, string> = {
   'phone/texting': 'Phone/Texting',
   canvassing: 'Canvassing',
-  "however_i'm_needed": "However I'm Needed",
-  'translation/language_support': 'Translation/Language Support',
-  'social_media_amplification': 'Social Media Amplification',
+  'events/house_parties': 'Events/House Parties',
+  'social_media_amplification': 'Social Media amplification',
+  fundraising: 'Fundraising',
+  'translation/language_support': 'Translation/Language support',
+  "however_i'm_needed": "However I'm needed",
 };
 
 function stripPrefix(value: unknown, prefix: string): string | null {
