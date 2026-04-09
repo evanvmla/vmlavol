@@ -1,3 +1,4 @@
+/* eslint-disable */
 /**
  * Meta Ads Lead Sync — Google Apps Script
  *
