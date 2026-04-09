@@ -19,9 +19,17 @@ type MetaLead = {
   [key: string]: unknown;
 };
 
+// Values must match the `spoken-language` custom field options exactly
+// (case-sensitive) or they will show up as orphan values in the multiselect
+// UI. Keys are the raw Meta Ads form answers (lower-cased).
 const LANGUAGE_MAP: Record<string, string> = {
   english: 'English',
   spanish: 'Spanish',
+  korean: 'Korean',
+  armenian: 'Armenian',
+  chinese: 'Chinese',
+  tagalog: 'Tagalog',
+  other: 'Other',
 };
 
 // Values must match the `how-would-you-like-to-help` custom field options
