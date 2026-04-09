@@ -23,6 +23,7 @@ CREATE TABLE forms (
   welcome_email_subject   TEXT,
   welcome_email_body      TEXT,
   field_ids               UUID[] DEFAULT '{}',
+  hidden_fields           TEXT[] DEFAULT '{}',
   is_active               BOOLEAN DEFAULT true,
   created_at              TIMESTAMPTZ DEFAULT now(),
   updated_at              TIMESTAMPTZ DEFAULT now()

@@ -12,7 +12,7 @@ export default async function EmbedFormPage({
   const supabase = createSupabaseAdmin();
   const { data: form } = await supabase
     .from('forms')
-    .select('id, name, slug, description, confirmation_message, welcome_email_subject, welcome_email_body, field_ids, is_active')
+    .select('id, name, slug, description, confirmation_message, welcome_email_subject, welcome_email_body, field_ids, hidden_fields, is_active')
     .eq('slug', params.slug)
     .single();
 
@@ -49,6 +49,7 @@ export default async function EmbedFormPage({
         name={form.name}
         description={form.description}
         confirmationMessage={form.confirmation_message}
+        hiddenFields={form.hidden_fields || []}
         customFields={customFields}
       />
     </div>

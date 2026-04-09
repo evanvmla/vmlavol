@@ -46,9 +46,9 @@ export async function POST(
     }
 
     // Validate required core fields
-    if (!body.email || !body.first_name || !body.last_name || !body.phone || !body.zip_code) {
+    if (!body.email || !body.first_name || !body.last_name) {
       return NextResponse.json(
-        { error: 'Email, first name, last name, phone, and zip code are required' },
+        { error: 'Email, first name, and last name are required' },
         { status: 400, headers: corsHeaders() }
       );
     }

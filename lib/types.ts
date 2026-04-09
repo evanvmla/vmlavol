@@ -18,6 +18,7 @@ export interface Form {
   welcome_email_body: string | null;
   confirmation_message: string | null;
   field_ids: string[];
+  hidden_fields: string[];
   is_active: boolean;
   created_at: string;
   updated_at: string;

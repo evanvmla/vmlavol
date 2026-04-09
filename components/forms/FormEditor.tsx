@@ -35,6 +35,7 @@ export function FormEditor({
     welcome_email_subject: form?.welcome_email_subject || '',
     welcome_email_body: form?.welcome_email_body || '',
     field_ids: form?.field_ids || [] as string[],
+    hidden_fields: form?.hidden_fields || [] as string[],
     is_active: form?.is_active !== false,
   });
 
@@ -141,13 +142,34 @@ export function FormEditor({
           </label>
 
           <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Default Fields (always included)</h3>
+            <h3 className="text-sm font-medium text-gray-700 mb-2">Default Fields</h3>
             <div className="space-y-1 text-sm text-gray-500">
               <p>First Name *</p>
               <p>Last Name *</p>
               <p>Email *</p>
-              <p>Phone *</p>
-              <p>Zip Code *</p>
+            </div>
+            <div className="space-y-2 mt-2">
+              {[
+                { key: 'phone', label: 'Phone' },
+                { key: 'zip_code', label: 'Zip Code' },
+              ].map((f) => (
+                <label key={f.key} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={!data.hidden_fields.includes(f.key)}
+                    onChange={(e) => {
+                      setData((d) => ({
+                        ...d,
+                        hidden_fields: e.target.checked
+                          ? d.hidden_fields.filter((k) => k !== f.key)
+                          : [...d.hidden_fields, f.key],
+                      }));
+                    }}
+                    className="rounded border-gray-300"
+                  />
+                  {f.label}
+                </label>
+              ))}
             </div>
           </div>
 
