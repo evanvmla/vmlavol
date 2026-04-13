@@ -5,11 +5,22 @@ import Link from 'next/link';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Users, FileText, Mail } from 'lucide-react';
 
+interface RecentVolunteer {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  source_form_id: string | null;
+  tags: string[];
+  created_at: string;
+}
+
 interface Stats {
   volunteers: number;
   forms: number;
   emailsSent: number;
-  recentVolunteers: { id: string; first_name: string; last_name: string; email: string; created_at: string }[];
+  recentVolunteers: RecentVolunteer[];
+  formNames: Record<string, string>;
 }
 
 export default function DashboardPage() {
@@ -18,23 +29,31 @@ export default function DashboardPage() {
     forms: 0,
     emailsSent: 0,
     recentVolunteers: [],
+    formNames: {},
   });
 
   useEffect(() => {
     async function load() {
       const [volRes, formRes] = await Promise.all([
-        fetch('/api/volunteers?limit=5'),
-        fetch('/api/forms?limit=1'),
+        fetch('/api/volunteers?limit=50'),
+        fetch('/api/forms?limit=100'),
       ]);
 
       const volJson = await volRes.json();
-      const formJson = await formRes.json().catch(() => ({ total: 0 }));
+      const formJson = await formRes.json().catch(() => ({ data: [], total: 0 }));
+
+      const formList = formJson.data || (Array.isArray(formJson) ? formJson : []);
+      const formNames: Record<string, string> = {};
+      for (const f of formList) {
+        if (f.id && f.name) formNames[f.id] = f.name;
+      }
 
       setStats({
         volunteers: volJson.total || 0,
-        forms: formJson.total || (Array.isArray(formJson) ? formJson.length : 0),
+        forms: formJson.total || formList.length,
         emailsSent: 0,
         recentVolunteers: volJson.data || [],
+        formNames,
       });
     }
     load();
@@ -75,24 +94,36 @@ export default function DashboardPage() {
         {stats.recentVolunteers.length === 0 ? (
           <p className="p-4 text-sm text-gray-500">No volunteers yet.</p>
         ) : (
-          <div className="divide-y divide-gray-200">
-            {stats.recentVolunteers.map((vol) => (
-              <Link
-                key={vol.id}
-                href={`/volunteers/${vol.id}`}
-                className="flex items-center justify-between p-4 hover:bg-gray-50"
-              >
-                <div>
-                  <p className="font-medium text-sm">
-                    {vol.first_name} {vol.last_name}
-                  </p>
-                  <p className="text-xs text-gray-500">{vol.email}</p>
-                </div>
-                <p className="text-xs text-gray-400">
-                  {new Date(vol.created_at).toLocaleDateString()}
-                </p>
-              </Link>
-            ))}
+          <div className="divide-y divide-gray-200 max-h-[600px] overflow-y-auto">
+            {stats.recentVolunteers.map((vol) => {
+              const source = vol.source_form_id && stats.formNames[vol.source_form_id]
+                ? stats.formNames[vol.source_form_id]
+                : vol.tags?.includes('meta-ads')
+                  ? 'Meta Ads'
+                  : null;
+              return (
+                <Link
+                  key={vol.id}
+                  href={`/volunteers/${vol.id}`}
+                  className="flex items-center justify-between p-4 hover:bg-gray-50"
+                >
+                  <div>
+                    <p className="font-medium text-sm">
+                      {vol.first_name} {vol.last_name}
+                    </p>
+                    <p className="text-xs text-gray-500">{vol.email}</p>
+                  </div>
+                  <div className="text-right shrink-0 ml-4">
+                    {source && (
+                      <p className="text-xs text-gray-500">{source}</p>
+                    )}
+                    <p className="text-xs text-gray-400">
+                      {new Date(vol.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         )}
       </div>
