@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { Table, Thead, Th, Td } from '@/components/ui/Table';
 import { Badge } from '@/components/ui/Badge';
-import { Plus, ExternalLink } from 'lucide-react';
+import { Plus, ExternalLink, CopyPlus } from 'lucide-react';
 import type { Form } from '@/lib/types';
 
 export default function FormsPage() {
@@ -74,9 +74,14 @@ export default function FormsPage() {
                 <Td>{form.welcome_email_subject ? 'Configured' : '-'}</Td>
                 <Td>{new Date(form.created_at).toLocaleDateString()}</Td>
                 <Td>
-                  <Link href={`/embed/${form.slug}`} target="_blank" className="text-gray-400 hover:text-blue-600">
-                    <ExternalLink className="w-4 h-4" />
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    <Link href={`/forms/new?from=${form.id}`} className="text-gray-400 hover:text-blue-600" title="Duplicate form">
+                      <CopyPlus className="w-4 h-4" />
+                    </Link>
+                    <Link href={`/embed/${form.slug}`} target="_blank" className="text-gray-400 hover:text-blue-600" title="Preview form">
+                      <ExternalLink className="w-4 h-4" />
+                    </Link>
+                  </div>
                 </Td>
               </tr>
             ))}

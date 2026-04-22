@@ -12,10 +12,12 @@ import type { Form, CustomField } from '@/lib/types';
 
 export function FormEditor({
   form,
+  initialData,
   onSave,
   onDelete,
 }: {
   form?: Form;
+  initialData?: Partial<Form>;
   onSave: (data: Record<string, unknown>) => Promise<void>;
   onDelete?: () => void;
 }) {
@@ -27,16 +29,17 @@ export function FormEditor({
   const [preview, setPreview] = useState('');
   const [showPreview, setShowPreview] = useState(false);
 
+  const source = form || initialData;
   const [data, setData] = useState({
-    name: form?.name || '',
-    slug: form?.slug || '',
-    description: form?.description || '',
-    confirmation_message: form?.confirmation_message || '',
-    welcome_email_subject: form?.welcome_email_subject || '',
-    welcome_email_body: form?.welcome_email_body || '',
-    field_ids: form?.field_ids || [] as string[],
-    hidden_fields: form?.hidden_fields || [] as string[],
-    is_active: form?.is_active !== false,
+    name: source?.name || '',
+    slug: source?.slug || '',
+    description: source?.description || '',
+    confirmation_message: source?.confirmation_message || '',
+    welcome_email_subject: source?.welcome_email_subject || '',
+    welcome_email_body: source?.welcome_email_body || '',
+    field_ids: source?.field_ids || [] as string[],
+    hidden_fields: source?.hidden_fields || [] as string[],
+    is_active: source?.is_active !== false,
   });
 
   useEffect(() => {

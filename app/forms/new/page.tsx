@@ -1,10 +1,36 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { FormEditor } from '@/components/forms/FormEditor';
+import type { Form } from '@/lib/types';
 
 export default function NewFormPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const fromId = searchParams.get('from');
+  const [initialData, setInitialData] = useState<Partial<Form> | undefined>(
+    fromId ? undefined : {}
+  );
+
+  useEffect(() => {
+    if (!fromId) return;
+    fetch(`/api/forms/${fromId}`)
+      .then((r) => r.json())
+      .then((form: Form) => {
+        setInitialData({
+          name: `${form.name} (Copy)`,
+          slug: '',
+          description: form.description,
+          confirmation_message: form.confirmation_message,
+          welcome_email_subject: form.welcome_email_subject,
+          welcome_email_body: form.welcome_email_body,
+          field_ids: form.field_ids,
+          hidden_fields: form.hidden_fields,
+          is_active: form.is_active,
+        });
+      });
+  }, [fromId]);
 
   async function handleSave(data: Record<string, unknown>) {
     const res = await fetch('/api/forms', {
@@ -18,5 +44,9 @@ export default function NewFormPage() {
     }
   }
 
-  return <FormEditor onSave={handleSave} />;
+  if (initialData === undefined) {
+    return <p className="text-gray-500">Loading...</p>;
+  }
+
+  return <FormEditor initialData={initialData} onSave={handleSave} />;
 }
