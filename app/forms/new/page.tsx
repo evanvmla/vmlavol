@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FormEditor } from '@/components/forms/FormEditor';
 import type { Form } from '@/lib/types';
 
-export default function NewFormPage() {
+function NewFormInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const fromId = searchParams.get('from');
@@ -49,4 +49,12 @@ export default function NewFormPage() {
   }
 
   return <FormEditor initialData={initialData} onSave={handleSave} />;
+}
+
+export default function NewFormPage() {
+  return (
+    <Suspense fallback={<p className="text-gray-500">Loading...</p>}>
+      <NewFormInner />
+    </Suspense>
+  );
 }
