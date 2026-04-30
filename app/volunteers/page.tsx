@@ -20,7 +20,7 @@ const statusColors: Record<string, 'green' | 'gray' | 'red'> = {
   do_not_contact: 'red',
 };
 
-type QuickFilter = 'volunteers' | 'nc' | null;
+type QuickFilter = 'volunteers' | 'nc' | 'numero' | null;
 
 type SortDir = 'asc' | 'desc';
 
@@ -102,6 +102,8 @@ export default function VolunteersPage() {
       allRules.push({ id: '_qf', field: 'tags', operator: 'not_contains', value: 'NC' });
     } else if (quickFilter === 'nc') {
       allRules.push({ id: '_qf', field: 'tags', operator: 'contains', value: 'NC' });
+    } else if (quickFilter === 'numero') {
+      allRules.push({ id: '_qf', field: 'tags', operator: 'contains', value: 'numero' });
     }
     if (allRules.length > 0) params.set('rules', JSON.stringify(allRules));
     return params;
@@ -310,7 +312,7 @@ export default function VolunteersPage() {
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">Quick filter</label>
               <div className="flex gap-2">
-                {([['volunteers', 'Volunteers'], ['nc', 'Neighborhood Councils']] as const).map(([key, label]) => (
+                {([['volunteers', 'Volunteers'], ['nc', 'Neighborhood Councils'], ['numero', 'Numero']] as const).map(([key, label]) => (
                   <button
                     key={key}
                     onClick={() => { setQuickFilter(quickFilter === key ? null : key); setPage(1); }}
