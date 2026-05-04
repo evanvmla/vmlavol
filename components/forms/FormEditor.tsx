@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
-import { ArrowLeft, Save, Trash2, Code, Copy, Eye } from 'lucide-react';
+import { ArrowLeft, Save, Trash2, Code, Copy, Eye, Check } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import type { Form, CustomField } from '@/lib/types';
 
@@ -24,6 +24,7 @@ export function FormEditor({
   const router = useRouter();
   const isNew = !form;
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [fields, setFields] = useState<CustomField[]>([]);
   const [copied, setCopied] = useState(false);
   const [preview, setPreview] = useState('');
@@ -52,6 +53,8 @@ export function FormEditor({
     setSaving(true);
     await onSave(data);
     setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
   }
 
   function toggleField(fieldId: string) {
@@ -237,9 +240,9 @@ export function FormEditor({
           </div>
 
           <div className="flex justify-end pt-4 border-t border-gray-200">
-            <Button type="submit" disabled={saving}>
-              <Save className="w-4 h-4 mr-2" />
-              {saving ? 'Saving...' : isNew ? 'Create Form' : 'Save Changes'}
+            <Button type="submit" disabled={saving} variant={saved ? 'secondary' : 'primary'}>
+              {saved ? <Check className="w-4 h-4 mr-2 text-green-600" /> : <Save className="w-4 h-4 mr-2" />}
+              {saving ? 'Saving...' : saved ? 'Saved!' : isNew ? 'Create Form' : 'Save Changes'}
             </Button>
           </div>
         </form>
