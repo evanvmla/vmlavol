@@ -37,6 +37,7 @@ export function FormEditor({
     confirmation_message: source?.confirmation_message || '',
     welcome_email_subject: source?.welcome_email_subject || '',
     welcome_email_body: source?.welcome_email_body || '',
+    notification_email: source?.notification_email || '',
     field_ids: source?.field_ids || [] as string[],
     hidden_fields: source?.hidden_fields || [] as string[],
     is_active: source?.is_active !== false,
@@ -214,6 +215,13 @@ export function FormEditor({
                 value={data.welcome_email_body}
                 onChange={(e) => setData({ ...data, welcome_email_body: e.target.value })}
                 placeholder="<p>Hi {{first_name}},</p><p>Thanks for signing up!</p>"
+              />
+              <Input
+                label="Notification Email (BCC on every signup)"
+                value={data.notification_email}
+                onChange={(e) => setData({ ...data, notification_email: e.target.value })}
+                placeholder="staff@example.com"
+                type="email"
               />
               <Button
                 type="button"

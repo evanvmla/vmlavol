@@ -57,7 +57,8 @@ export async function POST(request: NextRequest) {
         .from('volunteers')
         .select('id')
         .eq('status', 'active')
-        .not('email', 'is', null);
+        .not('email', 'is', null)
+        .limit(50000);
 
       const filters = body.filter_criteria || {};
 

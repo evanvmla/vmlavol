@@ -16,6 +16,7 @@ export interface Form {
   description: string | null;
   welcome_email_subject: string | null;
   welcome_email_body: string | null;
+  notification_email: string | null;
   confirmation_message: string | null;
   field_ids: string[];
   hidden_fields: string[];

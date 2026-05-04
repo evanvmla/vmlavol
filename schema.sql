@@ -22,6 +22,7 @@ CREATE TABLE forms (
   confirmation_message    TEXT,
   welcome_email_subject   TEXT,
   welcome_email_body      TEXT,
+  notification_email      TEXT,
   field_ids               UUID[] DEFAULT '{}',
   hidden_fields           TEXT[] DEFAULT '{}',
   is_active               BOOLEAN DEFAULT true,

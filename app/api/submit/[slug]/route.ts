@@ -157,6 +157,7 @@ export async function POST(
         await resend.emails.send({
           from: getFromEmail(),
           to: volunteer.email,
+          bcc: form.notification_email ? [form.notification_email] : undefined,
           subject,
           html: htmlBody,
         });
