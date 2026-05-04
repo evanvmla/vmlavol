@@ -49,7 +49,8 @@ export async function POST(request: NextRequest) {
         .select('id')
         .eq('status', 'active')
         .not('email', 'is', null)
-        .in('id', volunteerIds);
+        .in('id', volunteerIds)
+        .limit(50000);
       volunteers = result.data;
       volError = result.error;
     } else {
@@ -74,7 +75,7 @@ export async function POST(request: NextRequest) {
         volQuery = volQuery.eq('source_form_id', filters.source_form_id);
       }
 
-      const result = await volQuery;
+      const result = await volQuery.limit(50000);
       volunteers = result.data;
       volError = result.error;
     }

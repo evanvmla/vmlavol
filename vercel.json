@@ -3,6 +3,9 @@
     "app/api/cron/instil-sync/route.ts": {
       "memory": 1024,
       "maxDuration": 60
+    },
+    "app/api/email/send/route.ts": {
+      "maxDuration": 60
     }
   }
 }
