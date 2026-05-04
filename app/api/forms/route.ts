@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
         confirmation_message: body.confirmation_message || null,
         welcome_email_subject: body.welcome_email_subject || null,
         welcome_email_body: body.welcome_email_body || null,
+        notification_email: body.notification_email || null,
         field_ids: body.field_ids || [],
         hidden_fields: body.hidden_fields || [],
         is_active: body.is_active !== false,
