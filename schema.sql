@@ -12,6 +12,7 @@ CREATE TABLE custom_fields (
   display_order INT DEFAULT 0,
   created_at    TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE custom_fields ENABLE ROW LEVEL SECURITY;
 
 -- FORMS
 CREATE TABLE forms (
@@ -29,6 +30,7 @@ CREATE TABLE forms (
   created_at              TIMESTAMPTZ DEFAULT now(),
   updated_at              TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE forms ENABLE ROW LEVEL SECURITY;
 
 -- VOLUNTEERS
 CREATE TABLE volunteers (
@@ -47,6 +49,7 @@ CREATE TABLE volunteers (
   updated_at      TIMESTAMPTZ DEFAULT now()
 );
 
+ALTER TABLE volunteers ENABLE ROW LEVEL SECURITY;
 CREATE INDEX idx_volunteers_custom_data ON volunteers USING GIN (custom_data);
 CREATE INDEX idx_volunteers_name ON volunteers (lower(first_name), lower(last_name));
 CREATE INDEX idx_volunteers_email ON volunteers (lower(email));
@@ -65,6 +68,7 @@ CREATE TABLE events (
   created_at    TIMESTAMPTZ DEFAULT now(),
   updated_at    TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 
 -- EVENT VOLUNTEERS
 CREATE TABLE event_volunteers (
@@ -76,6 +80,7 @@ CREATE TABLE event_volunteers (
   created_at    TIMESTAMPTZ DEFAULT now(),
   UNIQUE(event_id, volunteer_id)
 );
+ALTER TABLE event_volunteers ENABLE ROW LEVEL SECURITY;
 
 -- EMAIL SENDS
 CREATE TABLE email_sends (
@@ -88,6 +93,7 @@ CREATE TABLE email_sends (
   sent_at           TIMESTAMPTZ,
   created_at        TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE email_sends ENABLE ROW LEVEL SECURITY;
 
 -- EMAIL RECIPIENTS
 CREATE TABLE email_recipients (
@@ -105,6 +111,7 @@ CREATE TABLE email_recipients (
   created_at              TIMESTAMPTZ DEFAULT now()
 );
 
+ALTER TABLE email_recipients ENABLE ROW LEVEL SECURITY;
 CREATE INDEX idx_email_recipients_pending ON email_recipients (status, email_send_id) WHERE status = 'pending';
 
 -- Atomic row-claiming RPC for email processing (prevents double-send race conditions)
@@ -140,6 +147,7 @@ CREATE TABLE interactions (
   created_by    TEXT,
   created_at    TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE interactions ENABLE ROW LEVEL SECURITY;
 CREATE INDEX idx_interactions_volunteer ON interactions (volunteer_id, created_at DESC);
 
 -- INSTIL SYNC QUEUE
@@ -153,6 +161,7 @@ CREATE TABLE instil_sync_queue (
   synced_at       TIMESTAMPTZ
 );
 
+ALTER TABLE instil_sync_queue ENABLE ROW LEVEL SECURITY;
 CREATE INDEX idx_instil_sync_pending ON instil_sync_queue (status, created_at)
   WHERE status = 'pending';
 
