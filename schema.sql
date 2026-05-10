@@ -97,28 +97,32 @@ CREATE TABLE email_recipients (
   resend_id       TEXT,
   status          TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'sent', 'delivered', 'opened', 'failed')),
   error           TEXT,
-  retry_count     INT DEFAULT 0,
-  sent_at         TIMESTAMPTZ,
-  delivered_at    TIMESTAMPTZ,
-  opened_at       TIMESTAMPTZ,
-  created_at      TIMESTAMPTZ DEFAULT now()
+  retry_count             INT DEFAULT 0,
+  sent_at                 TIMESTAMPTZ,
+  delivered_at            TIMESTAMPTZ,
+  opened_at               TIMESTAMPTZ,
+  processing_started_at   TIMESTAMPTZ,
+  created_at              TIMESTAMPTZ DEFAULT now()
 );
 
 CREATE INDEX idx_email_recipients_pending ON email_recipients (status, email_send_id) WHERE status = 'pending';
 
 -- Atomic row-claiming RPC for email processing (prevents double-send race conditions)
 -- Also reclaims rows stuck in 'processing' for >5 min (crashed worker recovery)
+-- NOTE: uses processing_started_at (not created_at) so sends that take >5 min total
+-- don't trigger false crash-recovery reclaims and cause duplicate emails.
 CREATE OR REPLACE FUNCTION claim_email_recipients(p_send_id UUID, p_batch_size INT)
 RETURNS SETOF email_recipients AS $$
   UPDATE email_recipients
-  SET status = 'processing'
+  SET status = 'processing',
+      processing_started_at = NOW()
   WHERE id IN (
     SELECT id FROM email_recipients
     WHERE email_send_id = p_send_id
       AND COALESCE(retry_count, 0) < 3
       AND (
         status = 'pending'
-        OR (status = 'processing' AND created_at < NOW() - INTERVAL '5 minutes')
+        OR (status = 'processing' AND processing_started_at < NOW() - INTERVAL '5 minutes')
       )
     LIMIT p_batch_size
     FOR UPDATE SKIP LOCKED
