@@ -3,6 +3,8 @@ import { createSupabaseAdmin } from '@/lib/supabase-server';
 import { handleError } from '@/lib/api-helpers';
 import { validateRequired, sanitizeSlug } from '@/lib/validation';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const supabase = createSupabaseAdmin();
