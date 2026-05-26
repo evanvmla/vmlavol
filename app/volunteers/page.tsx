@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { useRouter } from 'next/navigation';
 import { Plus, Search, Download, SlidersHorizontal, ChevronUp, ChevronDown, ChevronsUpDown, X, Mail, Phone, Tag } from 'lucide-react';
-import type { Volunteer, CustomField } from '@/lib/types';
+import type { Volunteer, CustomField, Form } from '@/lib/types';
 import { type FilterRule } from '@/lib/filter-volunteers';
 import { RecipientFilter } from '@/components/email/RecipientFilter';
 import { filterVolunteersWithEmail } from '@/lib/email-group-helpers';
@@ -67,6 +67,7 @@ export default function VolunteersPage() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  const [forms, setForms] = useState<Form[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [quickFilter, setQuickFilter] = useState<QuickFilter>(null);
   const [rules, setRules] = useState<FilterRule[]>([]);
@@ -86,6 +87,9 @@ export default function VolunteersPage() {
     fetch('/api/fields')
       .then((r) => r.json())
       .then((data) => setCustomFields(Array.isArray(data) ? data : []));
+    fetch('/api/forms')
+      .then((r) => r.json())
+      .then((json) => setForms(json.data || []));
   }, []);
 
   const buildParams = useCallback((overrides: Record<string, string> = {}) => {
@@ -334,7 +338,7 @@ export default function VolunteersPage() {
                 rules={rules}
                 onChange={(r) => { setRules(r); setPage(1); }}
                 customFields={customFields}
-                forms={[]}
+                forms={forms}
               />
             </div>
           </div>

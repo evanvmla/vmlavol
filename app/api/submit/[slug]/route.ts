@@ -85,18 +85,39 @@ export async function POST(
       }
     }
 
+    // Fetch existing volunteer to merge custom_data and preserve source_form_id
+    const normalizedEmail = body.email.toLowerCase().trim();
+    const { data: existing } = await supabase
+      .from('volunteers')
+      .select('source_form_id, custom_data')
+      .eq('email', normalizedEmail)
+      .maybeSingle();
+
+    const existingCustom = (existing?.custom_data as Record<string, unknown>) || {};
+    const incomingCustom = (body.custom_data || {}) as Record<string, unknown>;
+
+    // Merge: new values win, but blank/empty values don't erase existing data
+    const mergedCustomData = { ...existingCustom };
+    for (const [key, value] of Object.entries(incomingCustom)) {
+      const isBlank = value === '' || value === null || value === undefined
+        || (Array.isArray(value) && value.length === 0);
+      if (!isBlank) {
+        mergedCustomData[key] = value;
+      }
+    }
+
     // Upsert volunteer
     const { data: volunteer, error: volError } = await supabase
       .from('volunteers')
       .upsert(
         {
-          email: body.email.toLowerCase().trim(),
+          email: normalizedEmail,
           first_name: body.first_name.trim(),
           last_name: body.last_name.trim(),
           phone: body.phone || null,
           zip_code: body.zip_code || null,
-          source_form_id: form.id,
-          custom_data: body.custom_data || {},
+          source_form_id: existing?.source_form_id || form.id,
+          custom_data: mergedCustomData,
           updated_at: new Date().toISOString(),
         },
         { onConflict: 'email' }
