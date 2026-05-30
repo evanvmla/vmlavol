@@ -1,7 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdmin } from '@/lib/supabase-server';
 import { handleError } from '@/lib/api-helpers';
-import { parse } from 'csv-parse/sync';
+
+// Simple state-machine CSV row parser — no external dependency
+function parseCSVRow(line: string): string[] {
+  const fields: string[] = [];
+  let field = '';
+  let inQuotes = false;
+  let i = 0;
+  while (i < line.length) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"' && line[i + 1] === '"') {
+        field += '"';
+        i += 2;
+      } else if (ch === '"') {
+        inQuotes = false;
+        i++;
+      } else {
+        field += ch;
+        i++;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+        i++;
+      } else if (ch === ',') {
+        fields.push(field.trim());
+        field = '';
+        i++;
+      } else {
+        field += ch;
+        i++;
+      }
+    }
+  }
+  fields.push(field.trim());
+  return fields;
+}
+
+function parseCSV(text: string): Record<string, string>[] {
+  const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+  const nonEmpty = lines.filter((l) => l.trim() !== '');
+  if (nonEmpty.length < 2) return [];
+  const headers = parseCSVRow(nonEmpty[0]);
+  return nonEmpty.slice(1).map((line) => {
+    const values = parseCSVRow(line);
+    const row: Record<string, string> = {};
+    headers.forEach((h, idx) => { row[h] = values[idx] ?? ''; });
+    return row;
+  });
+}
 
 function normalizeHeader(h: string): string {
   return h.toLowerCase().replace(/[\s_-]+/g, '_').trim();
@@ -14,12 +63,10 @@ function detectColumns(headers: string[]): {
   nameCol: string | null;
 } {
   const normalized = headers.map(normalizeHeader);
-
   const findCol = (matches: string[]) => {
     const idx = normalized.findIndex((h) => matches.includes(h));
     return idx >= 0 ? headers[idx] : null;
   };
-
   return {
     emailCol: findCol(['email', 'email_address', 'emailaddress']),
     firstNameCol: findCol(['first_name', 'firstname', 'first']),
@@ -37,20 +84,10 @@ export async function POST(request: NextRequest) {
     }
 
     const text = await file.text();
-
-    let records: Record<string, string>[];
-    try {
-      records = parse(text, {
-        columns: true,
-        skip_empty_lines: true,
-        trim: true,
-      });
-    } catch {
-      return NextResponse.json({ error: 'Could not parse CSV file' }, { status: 400 });
-    }
+    const records = parseCSV(text);
 
     if (records.length === 0) {
-      return NextResponse.json({ error: 'CSV file is empty' }, { status: 400 });
+      return NextResponse.json({ error: 'CSV file is empty or has only a header row' }, { status: 400 });
     }
 
     const headers = Object.keys(records[0]);
@@ -102,9 +139,9 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = createSupabaseAdmin();
-
-    // Find which emails already exist — batch to avoid PostgREST URL length limits
     const CHUNK = 500;
+
+    // Find which emails already exist — batched
     const emails = validRows.map((r) => r.email);
     const existingEmails = new Set<string>();
     for (let i = 0; i < emails.length; i += CHUNK) {
