@@ -103,32 +103,40 @@ export async function POST(request: NextRequest) {
 
     const supabase = createSupabaseAdmin();
 
-    // Find which emails already exist
+    // Find which emails already exist — batch to avoid PostgREST URL length limits
+    const CHUNK = 500;
     const emails = validRows.map((r) => r.email);
-    const { data: existing } = await supabase
-      .from('volunteers')
-      .select('email')
-      .in('email', emails);
+    const existingEmails = new Set<string>();
+    for (let i = 0; i < emails.length; i += CHUNK) {
+      const { data, error } = await supabase
+        .from('volunteers')
+        .select('email')
+        .in('email', emails.slice(i, i + CHUNK));
+      if (error) throw error;
+      (data ?? []).forEach((r) => existingEmails.add(r.email as string));
+    }
 
-    const existingEmails = new Set((existing ?? []).map((r) => r.email as string));
     const newRows = validRows.filter((r) => !existingEmails.has(r.email));
 
     if (newRows.length === 0) {
       return NextResponse.json({ imported: 0, skipped: validRows.length, errors });
     }
 
-    const { error: insertError } = await supabase.from('volunteers').insert(
-      newRows.map((r) => ({
-        email: r.email,
-        first_name: r.first_name,
-        last_name: r.last_name,
-        status: 'active',
-        tags: [],
-        custom_data: {},
-      }))
-    );
-
-    if (insertError) throw insertError;
+    // Insert in batches
+    const insertRows = newRows.map((r) => ({
+      email: r.email,
+      first_name: r.first_name,
+      last_name: r.last_name,
+      status: 'active',
+      tags: [],
+      custom_data: {},
+    }));
+    for (let i = 0; i < insertRows.length; i += CHUNK) {
+      const { error: insertError } = await supabase
+        .from('volunteers')
+        .insert(insertRows.slice(i, i + CHUNK));
+      if (insertError) throw insertError;
+    }
 
     return NextResponse.json({
       imported: newRows.length,
