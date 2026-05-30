@@ -8,7 +8,7 @@ import { Table, Thead, Th, Td } from '@/components/ui/Table';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { useRouter } from 'next/navigation';
-import { Plus, Search, Download, SlidersHorizontal, ChevronUp, ChevronDown, ChevronsUpDown, X, Mail, Phone, Tag } from 'lucide-react';
+import { Plus, Search, Download, Upload, SlidersHorizontal, ChevronUp, ChevronDown, ChevronsUpDown, X, Mail, Phone, Tag, CheckCircle, AlertCircle } from 'lucide-react';
 import type { Volunteer, CustomField, Form } from '@/lib/types';
 import { type FilterRule } from '@/lib/filter-volunteers';
 import { RecipientFilter } from '@/components/email/RecipientFilter';
@@ -82,6 +82,14 @@ export default function VolunteersPage() {
   const selectAllRef = useRef<HTMLInputElement>(null);
   const [limit, setLimit] = useState(50);
   const PAGE_SIZE_OPTIONS = [25, 50, 100, 200];
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importResult, setImportResult] = useState<{
+    imported: number;
+    skipped: number;
+    errors: Array<{ row: number; reason: string }>;
+  } | null>(null);
 
   useEffect(() => {
     fetch('/api/fields')
@@ -249,6 +257,26 @@ export default function VolunteersPage() {
     URL.revokeObjectURL(url);
   }
 
+  async function handleImport() {
+    if (!importFile) return;
+    setImportLoading(true);
+    setImportResult(null);
+    try {
+      const fd = new FormData();
+      fd.append('file', importFile);
+      const res = await fetch('/api/volunteers/import', { method: 'POST', body: fd });
+      const json = await res.json();
+      if (!res.ok) {
+        alert(json.error || 'Import failed');
+        return;
+      }
+      setImportResult(json);
+      if (json.imported > 0) fetchVolunteers();
+    } finally {
+      setImportLoading(false);
+    }
+  }
+
   const totalPages = Math.ceil(total / limit);
 
   return (
@@ -261,6 +289,10 @@ export default function VolunteersPage() {
             <Button variant="secondary" onClick={handleExport}>
               <Download className="w-4 h-4 mr-2" />
               Export CSV
+            </Button>
+            <Button variant="secondary" onClick={() => { setImportFile(null); setImportResult(null); setShowImportModal(true); }}>
+              <Upload className="w-4 h-4 mr-2" />
+              Import CSV
             </Button>
             <Link href="/volunteers/new">
               <Button>
@@ -593,6 +625,71 @@ export default function VolunteersPage() {
               {bulkTagLoading ? 'Adding...' : 'Add Tag'}
             </Button>
           </div>
+        </div>
+      </Modal>
+
+      <Modal open={showImportModal} onClose={() => { if (!importLoading) { setShowImportModal(false); } }} title="Import CSV">
+        <div className="space-y-4">
+          {!importResult ? (
+            <>
+              <p className="text-sm text-gray-600">
+                Upload a CSV with at least an <strong>email</strong> column. Optional columns: <strong>first_name</strong>, <strong>last_name</strong>, or <strong>name</strong>. Existing emails will be skipped.
+              </p>
+              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
+                <div className="flex flex-col items-center gap-1 text-sm text-gray-500">
+                  <Upload className="w-6 h-6" />
+                  {importFile ? (
+                    <span className="font-medium text-gray-700">{importFile.name}</span>
+                  ) : (
+                    <span>Click to select a CSV file</span>
+                  )}
+                </div>
+                <input
+                  type="file"
+                  accept=".csv,text/csv"
+                  className="hidden"
+                  onChange={(e) => setImportFile(e.target.files?.[0] ?? null)}
+                />
+              </label>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="secondary" onClick={() => setShowImportModal(false)}>Cancel</Button>
+                <Button disabled={!importFile || importLoading} onClick={handleImport}>
+                  {importLoading ? 'Importing...' : 'Import'}
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                  <CheckCircle className="w-5 h-5 text-green-600 shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-green-800">{importResult.imported} imported</p>
+                  </div>
+                </div>
+                {importResult.skipped > 0 && (
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <AlertCircle className="w-5 h-5 text-gray-500 shrink-0" />
+                    <p className="text-sm text-gray-600">{importResult.skipped} skipped (already exist)</p>
+                  </div>
+                )}
+                {importResult.errors.length > 0 && (
+                  <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+                    <p className="text-sm font-medium text-red-700 mb-2">{importResult.errors.length} row{importResult.errors.length === 1 ? '' : 's'} with errors</p>
+                    <ul className="text-xs text-red-600 space-y-0.5 max-h-32 overflow-y-auto">
+                      {importResult.errors.map((e, i) => (
+                        <li key={i}>Row {e.row}: {e.reason}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="secondary" onClick={() => { setImportFile(null); setImportResult(null); }}>Import Another</Button>
+                <Button onClick={() => setShowImportModal(false)}>Done</Button>
+              </div>
+            </>
+          )}
         </div>
       </Modal>
 
