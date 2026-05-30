@@ -5,20 +5,28 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { Table, Thead, Th, Td } from '@/components/ui/Table';
 import { Badge } from '@/components/ui/Badge';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Send } from 'lucide-react';
 import Link from 'next/link';
 import type { EmailSend } from '@/lib/types';
 
 const statusColors: Record<string, 'gray' | 'blue' | 'green' | 'red' | 'yellow'> = {
-  draft: 'gray',
-  sending: 'yellow',
+  draft: 'yellow',
+  sending: 'blue',
   sent: 'green',
   failed: 'red',
+};
+
+const statusLabels: Record<string, string> = {
+  draft: 'saved',
+  sending: 'sending',
+  sent: 'sent',
+  failed: 'failed',
 };
 
 export default function EmailHistoryPage() {
   const [sends, setSends] = useState<EmailSend[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sendingId, setSendingId] = useState<string | null>(null);
 
   const fetchSends = useCallback(async () => {
     const res = await fetch('/api/email/send');
@@ -37,14 +45,28 @@ export default function EmailHistoryPage() {
     if (!hasSending) return;
 
     const timer = setInterval(async () => {
-      // Trigger next batch
       await fetch('/api/email/process', { method: 'POST' }).catch(() => {});
-      // Refresh list
       await fetchSends();
     }, 3000);
 
     return () => clearInterval(timer);
   }, [sends, fetchSends]);
+
+  async function handleSendDraft(id: string) {
+    if (!confirm('Send this email now?')) return;
+    setSendingId(id);
+    try {
+      const res = await fetch(`/api/email/send/${id}`, { method: 'POST' });
+      if (res.ok) {
+        await fetchSends();
+      } else {
+        const json = await res.json();
+        alert(json.error || 'Failed to send');
+      }
+    } finally {
+      setSendingId(null);
+    }
+  }
 
   return (
     <div>
@@ -81,14 +103,27 @@ export default function EmailHistoryPage() {
             {sends.map((send) => (
               <tr key={send.id} className="hover:bg-gray-50">
                 <Td className="font-medium max-w-xs truncate">{send.subject}</Td>
-                <Td>{send.recipient_count}</Td>
+                <Td>{send.status === 'draft' ? '—' : send.recipient_count}</Td>
                 <Td>
-                  <Badge color={statusColors[send.status]}>{send.status}</Badge>
+                  <Badge color={statusColors[send.status]}>
+                    {statusLabels[send.status] ?? send.status}
+                  </Badge>
                 </Td>
                 <Td>
-                  {send.sent_at
-                    ? new Date(send.sent_at).toLocaleString()
-                    : '-'}
+                  {send.status === 'draft' ? (
+                    <Button
+                      size="sm"
+                      onClick={() => handleSendDraft(send.id)}
+                      disabled={sendingId === send.id}
+                    >
+                      <Send className="w-3.5 h-3.5 mr-1.5" />
+                      {sendingId === send.id ? 'Sending…' : 'Send?'}
+                    </Button>
+                  ) : send.sent_at ? (
+                    new Date(send.sent_at).toLocaleString()
+                  ) : (
+                    '—'
+                  )}
                 </Td>
               </tr>
             ))}

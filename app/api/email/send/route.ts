@@ -31,6 +31,34 @@ export async function POST(request: NextRequest) {
 
     const supabase = createSupabaseAdmin();
 
+    // Save-only: store as draft without resolving recipients
+    if (body.save_only === true) {
+      const { from_address, cc, bcc } = body;
+      const volunteerIds: string[] | undefined = body.volunteer_ids;
+      const filters = body.filter_criteria || {};
+      const enrichedCriteria = {
+        ...filters,
+        ...(from_address ? { from_address } : {}),
+        ...(Array.isArray(cc) && cc.length ? { cc } : {}),
+        ...(Array.isArray(bcc) && bcc.length ? { bcc } : {}),
+        ...(Array.isArray(volunteerIds) && volunteerIds.length ? { volunteer_ids: volunteerIds } : {}),
+      };
+      const { data: draft, error: draftError } = await supabase
+        .from('email_sends')
+        .insert({
+          subject: body.subject,
+          body: body.body,
+          filter_criteria: enrichedCriteria,
+          recipient_count: 0,
+          status: 'draft',
+          sent_at: null,
+        })
+        .select()
+        .single();
+      if (draftError) throw draftError;
+      return NextResponse.json({ id: draft.id }, { status: 201 });
+    }
+
     const { data: customFields } = await supabase
       .from('custom_fields')
       .select('*');

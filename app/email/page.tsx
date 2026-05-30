@@ -6,7 +6,7 @@ import dynamic from 'next/dynamic';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { RecipientFilter } from '@/components/email/RecipientFilter';
-import { Send, Eye, History, ChevronDown, X, Search } from 'lucide-react';
+import { Send, Eye, History, ChevronDown, X, Search, Bookmark } from 'lucide-react';
 import Link from 'next/link';
 import type { Form, CustomField, Volunteer } from '@/lib/types';
 import type { FilterRule } from '@/lib/filter-volunteers';
@@ -57,6 +57,7 @@ function EmailComposePage() {
   const [preview, setPreview] = useState('');
   const [showPreview, setShowPreview] = useState(false);
   const [sending, setSending] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [recipientCount, setRecipientCount] = useState<number | null>(null);
   const [countLoading, setCountLoading] = useState(false);
   const [fromName, setFromName] = useState('');
@@ -186,6 +187,36 @@ function EmailComposePage() {
       return `Send this email to ${names.slice(0, 2).join(', ')}, and ${names.length - 2} more?`;
     }
     return `Send this email to approximately ${recipientCount} recipients?`;
+  }
+
+  async function handleSave() {
+    if (!subject || !body) return;
+    setSaving(true);
+    const payload: Record<string, unknown> = {
+      subject,
+      body,
+      save_only: true,
+      from_address: fromName && fromEmail ? `${fromName} <${fromEmail}>` : fromEmail,
+      cc: cc.split(/,\s*/).filter(Boolean),
+      bcc: bcc.split(/,\s*/).filter(Boolean),
+    };
+    if (sendMode === 'specific') {
+      payload.volunteer_ids = selectedVolunteers.map(v => v.id);
+    } else {
+      payload.filter_criteria = { rules };
+    }
+    const res = await fetch('/api/email/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) {
+      router.push('/email/history');
+    } else {
+      const json = await res.json();
+      alert(json.error || 'Failed to save');
+      setSaving(false);
+    }
   }
 
   async function handleSend() {
@@ -496,13 +527,23 @@ function EmailComposePage() {
               <Eye className="w-4 h-4 mr-2" />
               Preview
             </Button>
-            <Button
-              onClick={handleSend}
-              disabled={sending || !subject || !body || (sendMode === 'all' ? recipientCount === 0 : selectedVolunteers.length === 0)}
-            >
-              <Send className="w-4 h-4 mr-2" />
-              {sending ? 'Sending…' : `Send to ${sendMode === 'specific' ? selectedVolunteers.length : countLabel} recipients`}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                onClick={handleSave}
+                disabled={saving || sending || !subject || !body}
+              >
+                <Bookmark className="w-4 h-4 mr-2" />
+                {saving ? 'Saving…' : 'Save'}
+              </Button>
+              <Button
+                onClick={handleSend}
+                disabled={sending || saving || !subject || !body || (sendMode === 'all' ? recipientCount === 0 : selectedVolunteers.length === 0)}
+              >
+                <Send className="w-4 h-4 mr-2" />
+                {sending ? 'Sending…' : `Send to ${sendMode === 'specific' ? selectedVolunteers.length : countLabel} recipients`}
+              </Button>
+            </div>
           </div>
         </div>
 
